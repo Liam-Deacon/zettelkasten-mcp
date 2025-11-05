@@ -17,12 +17,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "mcp[cli]>=1.2.0",
+    "mcp[cli]>=1.15.0",
     "sqlalchemy>=2.0.0",
     "pydantic>=2.0.0",
     "python-frontmatter>=1.0.0",
     "markdown>=3.4.0",
     "python-dotenv>=1.0.0",
+    "smithery>=0.4.2",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +46,11 @@ sqlserver = [
 
 [project.scripts]
 zettelkasten-mcp = "zettelkasten_mcp.main:main"
+dev = "smithery.cli.dev:main"
+playground = "smithery.cli.playground:main"
+
+[tool.smithery]
+server = "zettelkasten_mcp.server.mcp_server:create_server"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

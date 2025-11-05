@@ -1,5 +1,6 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
 
+# TODO: consider switching to single config line: 'runtime: "python"'
 build:
   dockerfile: Dockerfile
   dockerBuildPath: .
