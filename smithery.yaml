@@ -1,12 +1,9 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
 
-# TODO: consider switching to single config line: 'runtime: "python"'
+# TODO: consider switching to docker config once simple python config works correctly
 runtime: python
-# build:
-#   dockerfile: Dockerfile
-#   dockerBuildPath: .
-# startCommand:
-#   type: http  # TODO: verify whether stdio is still supported
+startCommand:
+  type: sse
 #   configSchema:
 #     # JSON Schema defining the configuration options for the MCP.
 #     type: object
@@ -40,3 +37,6 @@ runtime: python
 #     logLevel: INFO
 #     notesDir: /data/notes
 #     database: /data/db/zettelkasten.db
+# build:
+#   dockerfile: Dockerfile
+#   dockerBuildPath: .
