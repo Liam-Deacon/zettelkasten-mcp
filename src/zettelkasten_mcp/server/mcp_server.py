@@ -1,15 +1,19 @@
 """MCP server implementation for the Zettelkasten."""
 
+from __future__ import annotations
+
 import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-from sqlalchemy import exc as sqlalchemy_exc
-from sqlalchemy.engine.url import make_url
+from typing import Literal, TypeAlias
+
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 from smithery.decorators import smithery
+from sqlalchemy import exc as sqlalchemy_exc
+from sqlalchemy.engine.url import make_url
+
 from zettelkasten_mcp.config import config
 from zettelkasten_mcp.models.db_models import init_db
 from zettelkasten_mcp.models.schema import LinkType, Note, NoteType, Tag
@@ -18,6 +22,10 @@ from zettelkasten_mcp.services.zettel_service import ZettelService
 from zettelkasten_mcp.utils import setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+#: Transport types supported by Zettelkasten MCP server
+TransportType: TypeAlias = Literal["sse", "stdio", "streamable-http"]
 
 
 class ZettelkastenConfigSchema(BaseModel):
@@ -42,9 +50,9 @@ class ZettelkastenConfigSchema(BaseModel):
 class ZettelkastenMcpServer:
     """MCP server for Zettelkasten."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the MCP server."""
-        self.mcp = FastMCP(config.server_name, version=config.server_version)
+        self.mcp = FastMCP(config.server_name)
         # Services
         self.zettel_service = ZettelService()
         self.search_service = SearchService(self.zettel_service)
@@ -109,7 +117,7 @@ class ZettelkastenMcpServer:
             title: str,
             content: str,
             note_type: str = "permanent",
-            tags: Optional[str] = None,
+            tags: str | None = None,
         ) -> str:
             """Create a new atomic Zettelkasten note with a unique ID, content, and optional tags.
 
@@ -198,10 +206,10 @@ class ZettelkastenMcpServer:
         )
         def zk_update_note(
             note_id: str,
-            title: Optional[str] = None,
-            content: Optional[str] = None,
-            note_type: Optional[str] = None,
-            tags: Optional[str] = None,
+            title: str | None = None,
+            content: str | None = None,
+            note_type: str | None = None,
+            tags: str | None = None,
         ) -> str:
             """Update the title, content, type, or tags of an existing note.
 
@@ -289,7 +297,7 @@ class ZettelkastenMcpServer:
             source_id: str,
             target_id: str,
             link_type: str = "reference",
-            description: Optional[str] = None,
+            description: str | None = None,
             bidirectional: bool = False,
         ) -> str:
             """Create a semantic link between two notes to build knowledge connections.
@@ -378,9 +386,9 @@ class ZettelkastenMcpServer:
             },
         )
         def zk_search_notes(
-            query: Optional[str] = None,
-            tags: Optional[str] = None,
-            note_type: Optional[str] = None,
+            query: str | None = None,
+            tags: str | None = None,
+            note_type: str | None = None,
             limit: int = 10,
         ) -> str:
             """Search for notes using text queries, tags, or note type filters.
@@ -682,8 +690,8 @@ class ZettelkastenMcpServer:
             },
         )
         def zk_list_notes_by_date(
-            start_date: Optional[str] = None,
-            end_date: Optional[str] = None,
+            start_date: str | None = None,
+            end_date: str | None = None,
             use_updated: bool = False,
             limit: int = 10,
         ) -> str:
@@ -959,22 +967,31 @@ Help me create a structure note or synthesis that:
     async def list_tools(self):
         return await self.mcp.list_tools()
 
-    def run(self) -> None:
-        """Run the MCP server."""
-        self.mcp.run(transport=getattr(config, "transport", "stdio"))
+    def run(
+        self,
+        transport: TransportType = getattr(config, "transport", None) or "stdio",
+    ) -> None:
+        """Run the MCP server.
+
+        Args:
+            transport: Transport protocol to use ("stdio", "sse", or "streamable-http").
+                      Defaults to "stdio" for CLI usage. When deployed on Smithery,
+                      the transport is controlled by FASTMCP_TRANSPORT env var.
+        """
+        self.mcp.run(transport=transport)
 
 
 # Smithery server factory function
 @smithery.server(config_schema=ZettelkastenConfigSchema)
-def create_server(session_config: Optional[ZettelkastenConfigSchema] = None) -> FastMCP:
+def create_server(session_config: ZettelkastenConfigSchema | None = None) -> FastMCP:
     """Create and return a Zettelkasten MCP server instance.
-    
+
     This factory function is used by Smithery for deployment.
     When deployed on Smithery, session_config contains user-specific settings.
-    
+
     Args:
         session_config: Optional session-specific configuration from Smithery
-    
+
     Returns:
         FastMCP: Configured Zettelkasten MCP server instance
     """
@@ -1006,9 +1023,9 @@ def create_server(session_config: Optional[ZettelkastenConfigSchema] = None) -> 
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
-    
+
     # Create the server instance
     server_instance = ZettelkastenMcpServer()
-    
+
     # Return the FastMCP server object
     return server_instance.mcp
