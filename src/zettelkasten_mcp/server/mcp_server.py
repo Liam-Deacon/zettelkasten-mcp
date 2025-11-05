@@ -775,13 +775,161 @@ class ZettelkastenMcpServer:
 
     def _register_resources(self) -> None:
         """Register MCP resources."""
-        # Currently, we don't define resources for the Zettelkasten server
-        pass
+
+        @self.mcp.resource(
+            "zettelkasten://notes/all",
+            name="All Notes",
+            description="Complete list of all notes in the Zettelkasten with basic metadata",
+        )
+        def get_all_notes() -> str:
+            """Get a list of all notes in the Zettelkasten."""
+            try:
+                notes = self.zettel_service.get_all_notes()
+                if not notes:
+                    return "No notes found in the Zettelkasten."
+
+                output = f"# All Notes in Zettelkasten ({len(notes)} total)\n\n"
+                for note in notes:
+                    output += f"## {note.title}\n"
+                    output += f"- **ID**: {note.id}\n"
+                    output += f"- **Type**: {note.note_type.value}\n"
+                    output += (
+                        f"- **Created**: {note.created_at.strftime('%Y-%m-%d %H:%M')}\n"
+                    )
+                    if note.tags:
+                        output += (
+                            f"- **Tags**: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
+                    # Count links
+                    link_count = len(note.links)
+                    if link_count > 0:
+                        output += f"- **Links**: {link_count} outgoing\n"
+                    output += "\n"
+                return output
+            except Exception as e:
+                return self.format_error_response(e)
+
+        @self.mcp.resource(
+            "zettelkasten://notes/{note_id}",
+            name="Note Content",
+            description="Full content and metadata of a specific note",
+        )
+        def get_note_resource(note_id: str) -> str:
+            """Get full content of a specific note."""
+            try:
+                note = self.zettel_service.get_note(note_id)
+                if not note:
+                    return f"Note not found: {note_id}"
+
+                # Format the note with full details
+                result = f"# {note.title}\n\n"
+                result += f"**ID**: {note.id}  \n"
+                result += f"**Type**: {note.note_type.value}  \n"
+                result += f"**Created**: {note.created_at.isoformat()}  \n"
+                result += f"**Updated**: {note.updated_at.isoformat()}  \n"
+                if note.tags:
+                    result += (
+                        f"**Tags**: {', '.join(tag.name for tag in note.tags)}  \n"
+                    )
+                result += f"\n---\n\n{note.content}\n"
+
+                # Add links section
+                if note.links:
+                    result += f"\n## Links ({len(note.links)})\n\n"
+                    for link in note.links:
+                        target = self.zettel_service.get_note(str(link.target_id))
+                        target_title = target.title if target else "Unknown"
+                        result += f"- **{link.link_type.value}** → [{target_title}](zettelkasten://notes/{link.target_id})\n"
+                        if link.description:
+                            result += f"  - {link.description}\n"
+
+                return result
+            except Exception as e:
+                return self.format_error_response(e)
+
+        @self.mcp.resource(
+            "zettelkasten://tags",
+            name="Tag Index",
+            description="Complete list of all tags used in the Zettelkasten",
+        )
+        def get_tags_resource() -> str:
+            """Get a list of all tags."""
+            try:
+                tags = self.zettel_service.get_all_tags()
+                if not tags:
+                    return "No tags found in the Zettelkasten."
+
+                # Sort alphabetically
+                tags.sort(key=lambda t: t.name.lower())
+
+                output = f"# Tags in Zettelkasten ({len(tags)} total)\n\n"
+                for tag in tags:
+                    output += f"- {tag.name}\n"
+                return output
+            except Exception as e:
+                return self.format_error_response(e)
 
     def _register_prompts(self) -> None:
         """Register MCP prompts."""
-        # Currently, we don't define prompts for the Zettelkasten server
-        pass
+
+        @self.mcp.prompt(
+            name="knowledge-creation",
+            description="Guide for incorporating new information into your Zettelkasten",
+        )
+        def knowledge_creation_prompt() -> str:
+            """Prompt for creating new Zettelkasten notes from information."""
+            return """I've attached information I'd like to incorporate into my Zettelkasten. Please:
+
+First, search for existing notes that might be related before creating anything new.
+
+Then, identify 3-5 key atomic ideas from this information and for each one:
+1. Create a note with an appropriate title, type, and tags
+2. Draft content in my own words with proper attribution
+3. Find and create meaningful connections to existing notes
+4. Update any relevant structure notes
+
+After processing all ideas, provide a summary of the notes created, connections established, and any follow-up questions you have."""
+
+        @self.mcp.prompt(
+            name="knowledge-exploration",
+            description="Guide for exploring connections in your Zettelkasten",
+        )
+        def knowledge_exploration_prompt(topic: str = "") -> str:
+            """Prompt for exploring knowledge in the Zettelkasten."""
+            topic_text = f" about '{topic}'" if topic else ""
+            return f"""I'd like to explore my Zettelkasten{topic_text}. Please help me:
+
+1. Search for relevant notes{topic_text if topic else ""}
+2. Identify the most connected notes (central nodes)
+3. Find clusters of related ideas
+4. Discover unexpected connections between different domains
+5. Identify gaps or orphaned notes that need integration
+
+As we explore, suggest:
+- New connections that could be made
+- Structure notes that could organize these ideas
+- Questions that might lead to deeper insights"""
+
+        @self.mcp.prompt(
+            name="knowledge-synthesis",
+            description="Guide for synthesizing insights from your Zettelkasten",
+        )
+        def knowledge_synthesis_prompt(theme: str = "") -> str:
+            """Prompt for synthesizing knowledge from the Zettelkasten."""
+            theme_text = f" around the theme '{theme}'" if theme else ""
+            return f"""I want to synthesize insights from my Zettelkasten{theme_text}. Please:
+
+1. Identify relevant notes and their connections{theme_text if theme else ""}
+2. Trace the evolution of ideas through linked notes
+3. Find patterns and recurring themes
+4. Identify contradictions or tensions between ideas
+5. Suggest how these ideas might combine into new insights
+
+Help me create a structure note or synthesis that:
+- Captures the key insights
+- Shows how ideas relate and build on each other
+- Identifies open questions or areas for further development
+- Links back to the source notes"""
 
     async def list_tools(self):
         return await self.mcp.list_tools()
