@@ -1,41 +1,7 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
+#
+# When using @smithery.server() decorator with config_schema, the Python
+# Pydantic model defines the configuration schema automatically.
+# The smithery.yaml just needs to point to the factory function.
 
-# TODO: consider switching to docker config once simple python config works correctly
 runtime: python
-startCommand:
-  type: streamable-http
-  # Python HTTP command must point to a server factory function that returns FastMCP
-  commandFunction: zettelkasten_mcp.server.mcp_server:create_server
-  configSchema:
-    # JSON Schema defining the configuration options for the MCP.
-    type: object
-    properties:
-      logLevel:
-        type: string
-        default: INFO
-      notesDir:
-        type: string
-        default: ""
-        description: >-
-          Where the notes are stored.
-
-          Blank stores under `./data/notes` relative path to mcp working
-          directory.
-      database:
-        type: string
-        default: ""
-        description: >-
-          SQLite file path or SQLAlchemy URL for the index database.
-
-          Leave blank to use `./data/db/zettelkasten.db` relative to the MCP
-          working directory.
-
-          PostgreSQL, MySQL, and SQL Server are supported via SQLAlchemy
-          connection URLs, e.g. `postgresql+psycopg2://user:password@host:port/dbname`
-  exampleConfig:
-    logLevel: INFO
-    notesDir: /data/notes
-    database: /data/db/zettelkasten.db
-build:
-  dockerfile: Dockerfile
-  dockerBuildPath: .
