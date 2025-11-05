@@ -50,20 +50,14 @@ class ZettelkastenConfigSchema(BaseModel):
 class ZettelkastenMcpServer:
     """MCP server for Zettelkasten."""
 
-    def __init__(self, auto_initialize: bool = True) -> None:
-        """Initialize the MCP server.
-        
-        Args:
-            auto_initialize: If True, automatically initialize services during construction.
-                           Set to False when using with Smithery to delay initialization.
-        """
+    def __init__(self) -> None:
+        """Initialize the MCP server."""
         self.mcp = FastMCP(config.server_name)
         # Services
         self.zettel_service = ZettelService()
         self.search_service = SearchService(self.zettel_service)
-        # Initialize services (unless deferred)
-        if auto_initialize:
-            self.initialize()
+        # Initialize services
+        self.initialize()
         # Register tools
         self._register_tools()
         self._register_resources()
@@ -1032,11 +1026,8 @@ def create_server(session_config: ZettelkastenConfigSchema | None = None) -> Fas
         logger.error(f"Failed to initialize database: {e}")
         raise
 
-    # Create the server instance with deferred initialization
-    server_instance = ZettelkastenMcpServer(auto_initialize=False)
-    
-    # Now initialize services after config and DB are set up
-    server_instance.initialize()
+    # Create the server instance
+    server_instance = ZettelkastenMcpServer()
 
     # Return the FastMCP server object
     return server_instance.mcp
