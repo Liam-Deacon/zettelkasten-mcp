@@ -1,9 +1,12 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
 
 # TODO: consider switching to docker config once simple python config works correctly
-# runtime: python
+runtime: python
 startCommand:
-  type: sse
+  type: streamable-http
+  # Python stdio command must point to an importable function in the
+  # format 'module.path:callable'. Use the package's CLI entrypoint.
+  commandFunction: zettelkasten_mcp.__main__:main
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
