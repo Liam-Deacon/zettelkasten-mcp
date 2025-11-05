@@ -1,9 +1,10 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
 
-runtime: container
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
 startCommand:
-  type: stdio
-  command: zettelkasten-mcp
+  type: http  # TODO: verify whether stdio is still supported
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
