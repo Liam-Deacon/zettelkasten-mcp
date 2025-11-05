@@ -1,42 +1,42 @@
 # Smithery configuration file: https://smithery.ai/docs/build/project-config
 
 # TODO: consider switching to docker config once simple python config works correctly
-runtime: python
+# runtime: python
 startCommand:
   type: sse
-#   configSchema:
-#     # JSON Schema defining the configuration options for the MCP.
-#     type: object
-#     required:
-#       - notesDir
-#       - database
-#     properties:
-#       logLevel:
-#         type: string
-#         default: INFO
-#       notesDir:
-#         type: string
-#         default: ""
-#         description: >-
-#           Where the notes are stored.
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - notesDir
+      - database
+    properties:
+      logLevel:
+        type: string
+        default: INFO
+      notesDir:
+        type: string
+        default: ""
+        description: >-
+          Where the notes are stored.
 
-#           Blank stores under `./data/notes` relative path to mcp working
-#           directory.
-#       database:
-#         type: string
-#         default: ""
-#         description: >-
-#           SQLite file path or SQLAlchemy URL for the index database.
+          Blank stores under `./data/notes` relative path to mcp working
+          directory.
+      database:
+        type: string
+        default: ""
+        description: >-
+          SQLite file path or SQLAlchemy URL for the index database.
 
-#           Leave blank to use `./data/db/zettelkasten.db` relative to the MCP
-#           working directory.
+          Leave blank to use `./data/db/zettelkasten.db` relative to the MCP
+          working directory.
 
-#           PostgreSQL, MySQL, and SQL Server are supported via SQLAlchemy
-#           connection URLs, e.g. `postgresql+psycopg2://user:password@host:port/dbname`
-#   exampleConfig:
-#     logLevel: INFO
-#     notesDir: /data/notes
-#     database: /data/db/zettelkasten.db
-# build:
-#   dockerfile: Dockerfile
-#   dockerBuildPath: .
+          PostgreSQL, MySQL, and SQL Server are supported via SQLAlchemy
+          connection URLs, e.g. `postgresql+psycopg2://user:password@host:port/dbname`
+  exampleConfig:
+    logLevel: INFO
+    notesDir: /data/notes
+    database: /data/db/zettelkasten.db
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
