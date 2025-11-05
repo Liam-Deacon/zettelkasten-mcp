@@ -4,15 +4,11 @@
 runtime: python
 startCommand:
   type: streamable-http
-  # Python stdio command must point to an importable function in the
-  # format 'module.path:callable'. Use the package's CLI entrypoint.
-  commandFunction: zettelkasten_mcp.__main__:main
+  # Python HTTP command must point to a server factory function that returns FastMCP
+  commandFunction: zettelkasten_mcp.server.mcp_server:create_server
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
-    required:
-      - notesDir
-      - database
     properties:
       logLevel:
         type: string
