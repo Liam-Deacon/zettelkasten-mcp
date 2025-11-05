@@ -1,4 +1,5 @@
 # Zettelkasten MCP Server
+
 [![smithery badge](https://smithery.ai/badge/zettelkasten-mcp)](https://smithery.ai/server/zettelkasten-mcp)
 
 A Model Context Protocol (MCP) server that implements the Zettelkasten knowledge management methodology, allowing you to create, link, explore and synthesize atomic notes through Claude and other MCP-compatible clients.
@@ -37,27 +38,27 @@ This structure invites serendipitous discoveries as you follow trails of thought
 
 The Zettelkasten MCP server supports different types of notes:
 
-|Type|Handle|Description|
-|---|---|---|
-|**Fleeting notes**|`fleeting`|Quick, temporary notes for capturing ideas|
-|**Literature notes**|`literature`|Notes from reading material|
-|**Permanent notes**|`permanent`|Well-formulated, evergreen notes|
-|**Structure notes**|`structure`|Index or outline notes that organize other notes|
-|**Hub notes**|`hub`|Entry points to the Zettelkasten on key topics|
+| Type                 | Handle       | Description                                      |
+| -------------------- | ------------ | ------------------------------------------------ |
+| **Fleeting notes**   | `fleeting`   | Quick, temporary notes for capturing ideas       |
+| **Literature notes** | `literature` | Notes from reading material                      |
+| **Permanent notes**  | `permanent`  | Well-formulated, evergreen notes                 |
+| **Structure notes**  | `structure`  | Index or outline notes that organize other notes |
+| **Hub notes**        | `hub`        | Entry points to the Zettelkasten on key topics   |
 
 ## Link Types
 
 The Zettelkasten MCP server uses a comprehensive semantic linking system that creates meaningful connections between notes. Each link type represents a specific relationship, allowing for a rich, multi-dimensional knowledge graph.
 
-| Primary Link Type | Inverse Link Type | Relationship Description |
-|-------------------|-------------------|--------------------------|
-| `reference` | `reference` | Simple reference to related information (symmetric relationship) |
-| `extends` | `extended_by` | One note builds upon or develops concepts from another |
-| `refines` | `refined_by` | One note clarifies or improves upon another |
-| `contradicts` | `contradicted_by` | One note presents opposing views to another |
-| `questions` | `questioned_by` | One note poses questions about another |
-| `supports` | `supported_by` | One note provides evidence for another |
-| `related` | `related` | Generic relationship (symmetric relationship) |
+| Primary Link Type | Inverse Link Type | Relationship Description                                         |
+| ----------------- | ----------------- | ---------------------------------------------------------------- |
+| `reference`       | `reference`       | Simple reference to related information (symmetric relationship) |
+| `extends`         | `extended_by`     | One note builds upon or develops concepts from another           |
+| `refines`         | `refined_by`      | One note clarifies or improves upon another                      |
+| `contradicts`     | `contradicted_by` | One note presents opposing views to another                      |
+| `questions`       | `questioned_by`   | One note poses questions about another                           |
+| `supports`        | `supported_by`    | One note provides evidence for another                           |
+| `related`         | `related`         | Generic relationship (symmetric relationship)                    |
 
 ## Prompting
 
@@ -100,6 +101,7 @@ NB: Optionally include the source code with a tool like [repomix](https://github
 This system uses a dual storage approach:
 
 1. **Markdown Files**: All notes are stored as human-readable Markdown files with YAML frontmatter for metadata. These files are the **source of truth** and can be:
+
    - Edited directly in any text editor
    - Placed under version control (Git, etc.)
    - Backed up using standard file backup procedures
@@ -188,7 +190,7 @@ pipx install "zettelkasten-mcp[mysql]"
 export ZETTELKASTEN_DATABASE="mysql+pymysql://user:password@localhost:3306/zettelkasten"
 ```
 
-For Microsoft SQL Server, install the `sqlserver` extra and point to an ODBC connection string (requires the appropriate system ODBC driver, e.g. *ODBC Driver 18 for SQL Server*):
+For Microsoft SQL Server, install the `sqlserver` extra and point to an ODBC connection string (requires the appropriate system ODBC driver, e.g. _ODBC Driver 18 for SQL Server_):
 
 ```bash
 pip install "zettelkasten-mcp[sqlserver]"
@@ -240,10 +242,7 @@ Add the following configuration to your Claude Desktop:
   "mcpServers": {
     "zettelkasten": {
       "command": "/absolute/path/to/zettelkasten-mcp/.venv/bin/python",
-      "args": [
-        "-m",
-        "zettelkasten_mcp"
-      ],
+      "args": ["-m", "zettelkasten_mcp"],
       "env": {
         "ZETTELKASTEN_NOTES_DIR": "/absolute/path/to/zettelkasten-mcp/data/notes",
         "ZETTELKASTEN_DATABASE": "postgresql+psycopg://user:password@localhost:5432/zettelkasten",
@@ -260,22 +259,22 @@ Set `ZETTELKASTEN_DATABASE` to a filesystem path for SQLite or any SQLAlchemy UR
 
 All tools have been prefixed with `zk_` for better organization:
 
-| Tool | Description |
-|---|---|
-| `zk_create_note` | Create a new note with a title, content, and optional tags |
-| `zk_get_note` | Retrieve a specific note by ID or title |
-| `zk_update_note` | Update an existing note's content or metadata |
-| `zk_delete_note` | Delete a note |
-| `zk_create_link` | Create links between notes |
-| `zk_remove_link` | Remove links between notes |
-| `zk_search_notes` | Search for notes by content, tags, or links |
-| `zk_get_linked_notes` | Find notes linked to a specific note |
-| `zk_get_all_tags` | List all tags in the system |
-| `zk_find_similar_notes` | Find notes similar to a given note |
-| `zk_find_central_notes` | Find notes with the most connections |
-| `zk_find_orphaned_notes` | Find notes with no connections |
-| `zk_list_notes_by_date` | List notes by creation/update date |
-| `zk_rebuild_index` | Rebuild the database index from Markdown files |
+| Tool                     | Description                                                |
+| ------------------------ | ---------------------------------------------------------- |
+| `zk_create_note`         | Create a new note with a title, content, and optional tags |
+| `zk_get_note`            | Retrieve a specific note by ID or title                    |
+| `zk_update_note`         | Update an existing note's content or metadata              |
+| `zk_delete_note`         | Delete a note                                              |
+| `zk_create_link`         | Create links between notes                                 |
+| `zk_remove_link`         | Remove links between notes                                 |
+| `zk_search_notes`        | Search for notes by content, tags, or links                |
+| `zk_get_linked_notes`    | Find notes linked to a specific note                       |
+| `zk_get_all_tags`        | List all tags in the system                                |
+| `zk_find_similar_notes`  | Find notes similar to a given note                         |
+| `zk_find_central_notes`  | Find notes with the most connections                       |
+| `zk_find_orphaned_notes` | Find notes with no connections                             |
+| `zk_list_notes_by_date`  | List notes by creation/update date                         |
+| `zk_rebuild_index`       | Rebuild the database index from Markdown files             |
 
 ## Project Structure
 
@@ -304,31 +303,37 @@ Comprehensive test suite for Zettelkasten MCP covering all layers of the applica
 From the project root directory, run:
 
 #### Using pytest directly
+
 ```bash
 python -m pytest -v tests/
 ```
 
 #### Using UV
+
 ```bash
 uv run pytest -v tests/
 ```
 
 #### With coverage report
+
 ```bash
 uv run pytest --cov=zettelkasten_mcp --cov-report=term-missing tests/
 ```
 
 #### Running a specific test file
+
 ```bash
 uv run pytest -v tests/test_models.py
 ```
 
 #### Running a specific test class
+
 ```bash
 uv run pytest -v tests/test_models.py::TestNoteModel
 ```
 
 #### Running a specific test function
+
 ```bash
 uv run pytest -v tests/test_models.py::TestNoteModel::test_note_validation
 ```
@@ -358,3 +363,34 @@ This MCP server was crafted with the assistance of Claude, who helped organize t
 ## License
 
 MIT License
+
+## Pre-commit (code formatting)
+
+To keep code style consistent, this project uses `pre-commit` with `black` and `isort` configured.
+
+Install and enable the hooks locally:
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+If you use a virtual environment, make sure the environment is activated before running `pre-commit install` so the hooks point to the correct Python interpreter.
+
+## Editor configuration (VS Code)
+
+This project includes recommended settings for Visual Studio Code to enable automatic import completions and organize imports on save. The workspace settings are in `.vscode/settings.json` and recommended extensions in `.vscode/extensions.json`.
+
+Recommended VS Code extensions:
+
+- `ms-python.python` — Python language support
+- `ms-python.vscode-pylance` — Pylance language server (provides auto-import completions)
+
+Important settings (already configured):
+
+- `python.analysis.autoImportCompletions: true` — shows auto-import suggestions in completions
+- `editor.codeActionsOnSave.source.organizeImports: true` — runs import sorting on save
+- `editor.formatOnSave: true` with Black as the formatter
+
+Activate the workspace settings by opening the project in VS Code; you may need to install the extensions and reload the window.
