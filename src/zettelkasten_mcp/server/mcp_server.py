@@ -969,7 +969,7 @@ Help me create a structure note or synthesis that:
 
     def run(
         self,
-        transport: TransportType = getattr(config, "transport", None) or "stdio",
+        transport: TransportType = getattr(config, "transport", None) or "sse",
     ) -> None:
         """Run the MCP server.
 
