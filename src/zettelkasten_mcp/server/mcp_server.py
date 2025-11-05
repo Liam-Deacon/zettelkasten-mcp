@@ -969,14 +969,16 @@ Help me create a structure note or synthesis that:
 
     def run(
         self,
-        transport: TransportType = getattr(config, "transport", None) or "sse",
+        transport: TransportType = getattr(config, "transport", None)
+        or "streamable-http",
     ) -> None:
         """Run the MCP server.
 
         Args:
             transport: Transport protocol to use ("stdio", "sse", or "streamable-http").
-                      Defaults to "stdio" for CLI usage. When deployed on Smithery,
-                      the transport is controlled by FASTMCP_TRANSPORT env var.
+                      Defaults to "streamable-http" to ensure Smithery's ASGI
+                      middleware (which serves `/.well-known/mcp-config`) is applied
+                      when the server is started without an explicit transport.
         """
         self.mcp.run(transport=transport)
 
