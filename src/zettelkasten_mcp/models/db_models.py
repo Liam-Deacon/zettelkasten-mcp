@@ -1,7 +1,9 @@
 """SQLAlchemy database models for the Zettelkasten MCP server."""
-import datetime
-from typing import List, Optional
+from __future__ import annotations
 
+import datetime
+
+import sqlalchemy.engine
 from sqlalchemy import (Column, DateTime, ForeignKey, Integer, String, Table,
                        Text, UniqueConstraint, create_engine)
 from sqlalchemy.ext.declarative import declarative_base
@@ -98,14 +100,14 @@ class DBLink(Base):
             f"target='{self.target_id}', type='{self.link_type}')>"
         )
 
-def init_db() -> None:
+def init_db() -> sqlalchemy.engine.Engine:
     """Initialize the database."""
     # Create engine based on configuration
     engine = create_engine(config.get_db_url())
     Base.metadata.create_all(engine)
     return engine
 
-def get_session_factory(engine=None):
+def get_session_factory(engine: sqlalchemy.engine.Engine | None = None) -> Session:
     """Get a session factory for the database."""
     if engine is None:
         engine = create_engine(config.get_db_url())
