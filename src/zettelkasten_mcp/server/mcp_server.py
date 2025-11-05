@@ -1,4 +1,5 @@
 """MCP server implementation for the Zettelkasten."""
+
 import logging
 import uuid
 from datetime import datetime
@@ -12,14 +13,13 @@ from zettelkasten_mcp.services.zettel_service import ZettelService
 
 logger = logging.getLogger(__name__)
 
+
 class ZettelkastenMcpServer:
     """MCP server for Zettelkasten."""
+
     def __init__(self):
         """Initialize the MCP server."""
-        self.mcp = FastMCP(
-            config.server_name,
-            version=config.server_version
-        )
+        self.mcp = FastMCP(config.server_name, version=config.server_version)
         # Services
         self.zettel_service = ZettelService()
         self.search_service = SearchService(self.zettel_service)
@@ -42,16 +42,16 @@ class ZettelkastenMcpServer:
 
     def format_error_response(self, error: Exception) -> str:
         """Format an error response in a consistent way.
-        
+
         Args:
             error: The exception that occurred
-            
+
         Returns:
             Formatted error message with appropriate level of detail
         """
         # Generate a unique error ID for traceability in logs
         error_id = str(uuid.uuid4())[:8]
-        
+
         if isinstance(error, ValueError):
             # Domain validation errors - typically safe to show to users
             logger.error(f"Validation error [{error_id}]: {str(error)}")
@@ -69,20 +69,30 @@ class ZettelkastenMcpServer:
 
     def _register_tools(self) -> None:
         """Register MCP tools."""
+
         # Create a new note
-        @self.mcp.tool(name="zk_create_note")
+        @self.mcp.tool(
+            name="zk_create_note",
+            description="Create a new atomic Zettelkasten note with a unique ID, content, and optional tags.",
+            annotations={
+                "readOnlyHint": False,
+                "destructiveHint": False,
+                "idempotentHint": False,
+            },
+        )
         def zk_create_note(
-            title: str, 
-            content: str, 
+            title: str,
+            content: str,
             note_type: str = "permanent",
-            tags: Optional[str] = None
+            tags: Optional[str] = None,
         ) -> str:
-            """Create a new Zettelkasten note.
+            """Create a new atomic Zettelkasten note with a unique ID, content, and optional tags.
+
             Args:
                 title: The title of the note
-                content: The main content of the note
-                note_type: Type of note (fleeting, literature, permanent, structure, hub)
-                tags: Comma-separated list of tags (optional)
+                content: The main content of the note in markdown format
+                note_type: Type of note - one of: fleeting, literature, permanent, structure, hub (default: permanent)
+                tags: Optional comma-separated list of tags for categorization
             """
             try:
                 # Convert note_type string to enum
@@ -90,12 +100,12 @@ class ZettelkastenMcpServer:
                     note_type_enum = NoteType(note_type.lower())
                 except ValueError:
                     return f"Invalid note type: {note_type}. Valid types are: {', '.join(t.value for t in NoteType)}"
-                
+
                 # Convert tags string to list
                 tag_list = []
                 if tags:
                     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-                
+
                 # Create the note
                 note = self.zettel_service.create_note(
                     title=title,
@@ -106,15 +116,24 @@ class ZettelkastenMcpServer:
                 return f"Note created successfully with ID: {note.id}"
             except Exception as e:
                 return self.format_error_response(e)
-        
+
         logger.debug("Tool zk_create_note registered")
 
         # Get a note by ID or title
-        @self.mcp.tool(name="zk_get_note")
+        @self.mcp.tool(
+            name="zk_get_note",
+            description="Retrieve the full content and metadata of a note by its unique ID or title.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_get_note(identifier: str) -> str:
-            """Retrieve a note by ID or title.
+            """Retrieve the full content and metadata of a note by its unique ID or title.
+
             Args:
-                identifier: The ID or title of the note
+                identifier: The unique ID or exact title of the note to retrieve
             """
             try:
                 identifier = str(identifier)
@@ -125,7 +144,7 @@ class ZettelkastenMcpServer:
                     note = self.zettel_service.get_note_by_title(identifier)
                 if not note:
                     return f"Note not found: {identifier}"
-                
+
                 # Format the note
                 result = f"# {note.title}\n"
                 result += f"ID: {note.id}\n"
@@ -139,32 +158,41 @@ class ZettelkastenMcpServer:
                 return result
             except Exception as e:
                 return self.format_error_response(e)
-        
+
         logger.debug("Tool zk_get_note registered")
 
         # Update a note
-        @self.mcp.tool(name="zk_update_note")
+        @self.mcp.tool(
+            name="zk_update_note",
+            description="Update the title, content, type, or tags of an existing note.",
+            annotations={
+                "readOnlyHint": False,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_update_note(
             note_id: str,
             title: Optional[str] = None,
             content: Optional[str] = None,
             note_type: Optional[str] = None,
-            tags: Optional[str] = None
+            tags: Optional[str] = None,
         ) -> str:
-            """Update an existing note.
+            """Update the title, content, type, or tags of an existing note.
+
             Args:
-                note_id: The ID of the note to update
-                title: New title (optional)
-                content: New content (optional)
-                note_type: New note type (optional)
-                tags: New comma-separated list of tags (optional)
+                note_id: The unique ID of the note to update
+                title: New title for the note (optional)
+                content: New markdown content for the note (optional)
+                note_type: New note type - one of: fleeting, literature, permanent, structure, hub (optional)
+                tags: New comma-separated list of tags, or empty string to clear tags (optional)
             """
             try:
                 # Get the note
                 note = self.zettel_service.get_note(str(note_id))
                 if not note:
                     return f"Note not found: {note_id}"
-                
+
                 # Convert note_type string to enum if provided
                 note_type_enum = None
                 if note_type:
@@ -172,19 +200,19 @@ class ZettelkastenMcpServer:
                         note_type_enum = NoteType(note_type.lower())
                     except ValueError:
                         return f"Invalid note type: {note_type}. Valid types are: {', '.join(t.value for t in NoteType)}"
-                
+
                 # Convert tags string to list if provided
                 tag_list = None
                 if tags is not None:  # Allow empty string to clear tags
                     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-                
+
                 # Update the note
                 updated_note = self.zettel_service.update_note(
                     note_id=note_id,
                     title=title,
                     content=content,
                     note_type=note_type_enum,
-                    tags=tag_list
+                    tags=tag_list,
                 )
                 return f"Note updated successfully: {updated_note.id}"
             except Exception as e:
@@ -193,18 +221,27 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_update_note registered")
 
         # Delete a note
-        @self.mcp.tool(name="zk_delete_note")
+        @self.mcp.tool(
+            name="zk_delete_note",
+            description="Permanently delete a note and all its associated links from the Zettelkasten.",
+            annotations={
+                "readOnlyHint": False,
+                "destructiveHint": True,
+                "idempotentHint": True,
+            },
+        )
         def zk_delete_note(note_id: str) -> str:
-            """Delete a note.
+            """Permanently delete a note and all its associated links from the Zettelkasten.
+
             Args:
-                note_id: The ID of the note to delete
+                note_id: The unique ID of the note to permanently delete
             """
             try:
                 # Check if note exists
                 note = self.zettel_service.get_note(note_id)
                 if not note:
                     return f"Note not found: {note_id}"
-                
+
                 # Delete the note
                 self.zettel_service.delete_note(str(note_id))
                 return f"Note deleted successfully: {note_id}"
@@ -214,21 +251,30 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_delete_note registered")
 
         # Add a link between notes
-        @self.mcp.tool(name="zk_create_link")
+        @self.mcp.tool(
+            name="zk_create_link",
+            description="Create a semantic link between two notes to build knowledge connections.",
+            annotations={
+                "readOnlyHint": False,
+                "destructiveHint": False,
+                "idempotentHint": False,
+            },
+        )
         def zk_create_link(
             source_id: str,
             target_id: str,
             link_type: str = "reference",
             description: Optional[str] = None,
-            bidirectional: bool = False
+            bidirectional: bool = False,
         ) -> str:
-            """Create a link between two notes.
+            """Create a semantic link between two notes to build knowledge connections.
+
             Args:
-                source_id: ID of the source note
-                target_id: ID of the target note
-                link_type: Type of link (reference, extends, refines, contradicts, questions, supports, related)
-                description: Optional description of the link
-                bidirectional: Whether to create a link in both directions
+                source_id: The unique ID of the source note
+                target_id: The unique ID of the target note
+                link_type: Type of semantic relationship - one of: reference, extends, refines, contradicts, questions, supports, related (default: reference)
+                description: Optional text describing the nature of this specific link
+                bidirectional: If true, creates links in both directions (source→target and target→source)
             """
             try:
                 # Convert link_type string to enum
@@ -238,14 +284,14 @@ class ZettelkastenMcpServer:
                     link_type_enum = LinkType(link_type.lower())
                 except ValueError:
                     return f"Invalid link type: {link_type}. Valid types are: {', '.join(t.value for t in LinkType)}"
-                
+
                 # Create the link
                 source_note, target_note = self.zettel_service.create_link(
                     source_id=source_id,
                     target_id=target_id,
                     link_type=link_type_enum,
                     description=description,
-                    bidirectional=bidirectional
+                    bidirectional=bidirectional,
                 )
                 if bidirectional:
                     return f"Bidirectional link created between {source_id} and {target_id}"
@@ -255,29 +301,37 @@ class ZettelkastenMcpServer:
                 if "UNIQUE constraint failed" in str(e):
                     return f"A link of this type already exists between these notes. Try a different link type."
                 return self.format_error_response(e)
+
         self.zk_create_link = zk_create_link
 
         logger.debug("Tool zk_create_link registered")
 
         # Remove a link between notes
-        @self.mcp.tool(name="zk_remove_link")
+        @self.mcp.tool(
+            name="zk_remove_link",
+            description="Remove an existing link between two notes.",
+            annotations={
+                "readOnlyHint": False,
+                "destructiveHint": True,
+                "idempotentHint": True,
+            },
+        )
         def zk_remove_link(
-            source_id: str,
-            target_id: str,
-            bidirectional: bool = False
+            source_id: str, target_id: str, bidirectional: bool = False
         ) -> str:
-            """Remove a link between two notes.
+            """Remove an existing link between two notes.
+
             Args:
-                source_id: ID of the source note
-                target_id: ID of the target note
-                bidirectional: Whether to remove the link in both directions
+                source_id: The unique ID of the source note
+                target_id: The unique ID of the target note
+                bidirectional: If true, removes links in both directions (source→target and target→source)
             """
             try:
                 # Remove the link
                 source_note, target_note = self.zettel_service.remove_link(
                     source_id=str(source_id),
                     target_id=str(target_id),
-                    bidirectional=bidirectional
+                    bidirectional=bidirectional,
                 )
                 if bidirectional:
                     return f"Bidirectional link removed between {source_id} and {target_id}"
@@ -289,26 +343,35 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_remove_link registered")
 
         # Search for notes
-        @self.mcp.tool(name="zk_search_notes")
+        @self.mcp.tool(
+            name="zk_search_notes",
+            description="Search for notes using text queries, tags, or note type filters.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_search_notes(
             query: Optional[str] = None,
             tags: Optional[str] = None,
             note_type: Optional[str] = None,
-            limit: int = 10
+            limit: int = 10,
         ) -> str:
-            """Search for notes by text, tags, or type.
+            """Search for notes using text queries, tags, or note type filters.
+
             Args:
-                query: Text to search for in titles and content
-                tags: Comma-separated list of tags to filter by
-                note_type: Type of note to filter by
-                limit: Maximum number of results to return
+                query: Text to search for in note titles and content (optional)
+                tags: Comma-separated list of tags to filter results (optional)
+                note_type: Filter by note type - one of: fleeting, literature, permanent, structure, hub (optional)
+                limit: Maximum number of results to return (default: 10)
             """
             try:
                 # Convert tags string to list if provided
                 tag_list = None
                 if tags:
                     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-                
+
                 # Convert note_type string to enum if provided
                 note_type_enum = None
                 if note_type:
@@ -316,26 +379,26 @@ class ZettelkastenMcpServer:
                         note_type_enum = NoteType(note_type.lower())
                     except ValueError:
                         return f"Invalid note type: {note_type}. Valid types are: {', '.join(t.value for t in NoteType)}"
-                
+
                 # Perform search
                 results = self.search_service.search_combined(
-                    text=query,
-                    tags=tag_list,
-                    note_type=note_type_enum
+                    text=query, tags=tag_list, note_type=note_type_enum
                 )
-                
+
                 # Limit results
                 results = results[:limit]
                 if not results:
                     return "No matching notes found."
-                
+
                 # Format results
                 output = f"Found {len(results)} matching notes:\n\n"
                 for i, result in enumerate(results, 1):
                     note = result.note
                     output += f"{i}. {note.title} (ID: {note.id})\n"
                     if note.tags:
-                        output += f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        output += (
+                            f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
                     output += f"   Created: {note.created_at.strftime('%Y-%m-%d')}\n"
                     # Add a snippet of content (first 150 chars)
                     content_preview = note.content[:150].replace("\n", " ")
@@ -349,21 +412,29 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_search_notes registered")
 
         # Get linked notes
-        @self.mcp.tool(name="zk_get_linked_notes")
-        def zk_get_linked_notes(
-            note_id: str,
-            direction: str = "both"
-        ) -> str:
-            """Get notes linked to/from a note.
+        @self.mcp.tool(
+            name="zk_get_linked_notes",
+            description="Find all notes connected to a specific note through links.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
+        def zk_get_linked_notes(note_id: str, direction: str = "both") -> str:
+            """Find all notes connected to a specific note through links.
+
             Args:
-                note_id: ID of the note
-                direction: Direction of links (outgoing, incoming, both)
+                note_id: The unique ID of the note to find connections for
+                direction: Link direction to explore - one of: outgoing (links from this note), incoming (links to this note), both (default: both)
             """
             try:
                 if direction not in ["outgoing", "incoming", "both"]:
                     return f"Invalid direction: {direction}. Use 'outgoing', 'incoming', or 'both'."
                 # Get linked notes
-                linked_notes = self.zettel_service.get_linked_notes(str(note_id), direction)
+                linked_notes = self.zettel_service.get_linked_notes(
+                    str(note_id), direction
+                )
                 if not linked_notes:
                     return f"No {direction} links found for note {note_id}."
                 # Format results
@@ -371,23 +442,33 @@ class ZettelkastenMcpServer:
                 for i, note in enumerate(linked_notes, 1):
                     output += f"{i}. {note.title} (ID: {note.id})\n"
                     if note.tags:
-                        output += f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        output += (
+                            f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
                     # Try to determine link type
                     if direction in ["outgoing", "both"]:
                         # Check source note's outgoing links
                         source_note = self.zettel_service.get_note(str(note_id))
                         if source_note:
                             for link in source_note.links:
-                                if str(link.target_id) == str(note.id):  # Explicit string conversion for comparison
+                                if str(link.target_id) == str(
+                                    note.id
+                                ):  # Explicit string conversion for comparison
                                     output += f"   Link type: {link.link_type.value}\n"
                                     if link.description:
-                                        output += f"   Description: {link.description}\n"
+                                        output += (
+                                            f"   Description: {link.description}\n"
+                                        )
                                     break
                     if direction in ["incoming", "both"]:
                         # Check target note's outgoing links
                         for link in note.links:
-                            if str(link.target_id) == str(note_id):  # Explicit string conversion for comparison
-                                output += f"   Incoming link type: {link.link_type.value}\n"
+                            if str(link.target_id) == str(
+                                note_id
+                            ):  # Explicit string conversion for comparison
+                                output += (
+                                    f"   Incoming link type: {link.link_type.value}\n"
+                                )
                                 if link.description:
                                     output += f"   Description: {link.description}\n"
                                 break
@@ -395,19 +476,28 @@ class ZettelkastenMcpServer:
                 return output
             except Exception as e:
                 return self.format_error_response(e)
+
         self.zk_get_linked_notes = zk_get_linked_notes
 
         logger.debug("Tool zk_get_linked_notes registered")
 
         # Get all tags
-        @self.mcp.tool(name="zk_get_all_tags")
+        @self.mcp.tool(
+            name="zk_get_all_tags",
+            description="Retrieve a complete list of all tags used across the Zettelkasten.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_get_all_tags() -> str:
-            """Get all tags in the Zettelkasten."""
+            """Retrieve a complete list of all tags used across the Zettelkasten."""
             try:
                 tags = self.zettel_service.get_all_tags()
                 if not tags:
                     return "No tags found in the Zettelkasten."
-                
+
                 # Format results
                 output = f"Found {len(tags)} tags:\n\n"
                 # Sort alphabetically
@@ -421,33 +511,44 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_get_all_tags registered")
 
         # Find similar notes
-        @self.mcp.tool(name="zk_find_similar_notes")
+        @self.mcp.tool(
+            name="zk_find_similar_notes",
+            description="Discover notes with similar content using semantic similarity analysis.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_find_similar_notes(
-            note_id: str,
-            threshold: float = 0.3,
-            limit: int = 5
+            note_id: str, threshold: float = 0.3, limit: int = 5
         ) -> str:
-            """Find notes similar to a given note.
+            """Discover notes with similar content using semantic similarity analysis.
+
             Args:
-                note_id: ID of the reference note
-                threshold: Similarity threshold (0.0-1.0)
-                limit: Maximum number of results to return
+                note_id: The unique ID of the reference note to compare against
+                threshold: Minimum similarity score from 0.0 (unrelated) to 1.0 (identical) (default: 0.3)
+                limit: Maximum number of similar notes to return (default: 5)
             """
             try:
                 # Get similar notes
-                similar_notes = self.zettel_service.find_similar_notes(str(note_id), threshold)
+                similar_notes = self.zettel_service.find_similar_notes(
+                    str(note_id), threshold
+                )
                 # Limit results
                 similar_notes = similar_notes[:limit]
                 if not similar_notes:
                     return f"No similar notes found for {note_id} with threshold {threshold}."
-                
+
                 # Format results
                 output = f"Found {len(similar_notes)} similar notes for {note_id}:\n\n"
                 for i, (note, similarity) in enumerate(similar_notes, 1):
                     output += f"{i}. {note.title} (ID: {note.id})\n"
                     output += f"   Similarity: {similarity:.2f}\n"
                     if note.tags:
-                        output += f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        output += (
+                            f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
                     # Add a snippet of content (first 100 chars)
                     content_preview = note.content[:100].replace("\n", " ")
                     if len(note.content) > 100:
@@ -460,29 +561,40 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_find_similar_notes registered")
 
         # Find central notes
-        @self.mcp.tool(name="zk_find_central_notes")
+        @self.mcp.tool(
+            name="zk_find_central_notes",
+            description="Identify the most connected notes that serve as knowledge hubs.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_find_central_notes(limit: int = 10) -> str:
-            """Find notes with the most connections (incoming + outgoing links).
-            Notes are ranked by their total number of connections, determining
-            their centrality in the knowledge network. Due to database constraints,
-            only one link of each type is counted between any pair of notes.
+            """Identify the most connected notes that serve as knowledge hubs.
+
+            Notes are ranked by their total number of connections (incoming + outgoing links),
+            determining their centrality in the knowledge network. These central notes often
+            represent key concepts or structure notes.
 
             Args:
-                limit: Maximum number of results to return (default: 10)
+                limit: Maximum number of central notes to return (default: 10)
             """
             try:
                 # Get central notes
                 central_notes = self.search_service.find_central_notes(limit)
                 if not central_notes:
                     return "No notes found with connections."
-                
+
                 # Format results
                 output = "Central notes in the Zettelkasten (most connected):\n\n"
                 for i, (note, connection_count) in enumerate(central_notes, 1):
                     output += f"{i}. {note.title} (ID: {note.id})\n"
                     output += f"   Connections: {connection_count}\n"
                     if note.tags:
-                        output += f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        output += (
+                            f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
                     # Add a snippet of content (first 100 chars)
                     content_preview = note.content[:100].replace("\n", " ")
                     if len(note.content) > 100:
@@ -495,21 +607,34 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_find_central_notes registered")
 
         # Find orphaned notes
-        @self.mcp.tool(name="zk_find_orphaned_notes")
+        @self.mcp.tool(
+            name="zk_find_orphaned_notes",
+            description="Find isolated notes that have no links to or from other notes.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_find_orphaned_notes() -> str:
-            """Find notes with no connections to other notes."""
+            """Find isolated notes that have no links to or from other notes.
+
+            Orphaned notes may indicate fleeting ideas that need integration or cleanup.
+            """
             try:
                 # Get orphaned notes
                 orphans = self.search_service.find_orphaned_notes()
                 if not orphans:
                     return "No orphaned notes found."
-                
+
                 # Format results
                 output = f"Found {len(orphans)} orphaned notes:\n\n"
                 for i, note in enumerate(orphans, 1):
                     output += f"{i}. {note.title} (ID: {note.id})\n"
                     if note.tags:
-                        output += f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        output += (
+                            f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
                     # Add a snippet of content (first 100 chars)
                     content_preview = note.content[:100].replace("\n", " ")
                     if len(note.content) > 100:
@@ -522,19 +647,28 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_find_orphaned_notes registered")
 
         # List notes by date range
-        @self.mcp.tool(name="zk_list_notes_by_date")
+        @self.mcp.tool(
+            name="zk_list_notes_by_date",
+            description="List notes created or modified within a specific date range.",
+            annotations={
+                "readOnlyHint": True,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_list_notes_by_date(
             start_date: Optional[str] = None,
             end_date: Optional[str] = None,
             use_updated: bool = False,
-            limit: int = 10
+            limit: int = 10,
         ) -> str:
-            """List notes created or updated within a date range.
+            """List notes created or modified within a specific date range.
+
             Args:
-                start_date: Start date in ISO format (YYYY-MM-DD)
-                end_date: End date in ISO format (YYYY-MM-DD)
-                use_updated: Whether to use updated_at instead of created_at
-                limit: Maximum number of results to return
+                start_date: Start of date range in ISO format YYYY-MM-DD (optional, defaults to earliest)
+                end_date: End of date range in ISO format YYYY-MM-DD (optional, defaults to latest)
+                use_updated: If true, filter by modification date instead of creation date (default: false)
+                limit: Maximum number of results to return (default: 10)
             """
             try:
                 # Parse dates
@@ -544,14 +678,14 @@ class ZettelkastenMcpServer:
                 end_datetime = None
                 if end_date:
                     end_datetime = datetime.fromisoformat(f"{end_date}T23:59:59")
-                
+
                 # Get notes
                 notes = self.search_service.find_notes_by_date_range(
                     start_date=start_datetime,
                     end_date=end_datetime,
-                    use_updated=use_updated
+                    use_updated=use_updated,
                 )
-                
+
                 # Limit results
                 notes = notes[:limit]
                 if not notes:
@@ -564,7 +698,7 @@ class ZettelkastenMcpServer:
                     elif end_date:
                         date_range = f" before {end_date}"
                     return f"No notes found {date_type}{date_range}."
-                
+
                 # Format results
                 date_type = "updated" if use_updated else "created"
                 output = f"Notes {date_type}"
@@ -581,7 +715,9 @@ class ZettelkastenMcpServer:
                     output += f"{i}. {note.title} (ID: {note.id})\n"
                     output += f"   {date_type.capitalize()}: {date.strftime('%Y-%m-%d %H:%M')}\n"
                     if note.tags:
-                        output += f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        output += (
+                            f"   Tags: {', '.join(tag.name for tag in note.tags)}\n"
+                        )
                     # Add a snippet of content (first 100 chars)
                     content_preview = note.content[:100].replace("\n", " ")
                     if len(note.content) > 100:
@@ -598,19 +734,32 @@ class ZettelkastenMcpServer:
         logger.debug("Tool zk_list_notes_by_date registered")
 
         # Rebuild the index
-        @self.mcp.tool(name="zk_rebuild_index")
+        @self.mcp.tool(
+            name="zk_rebuild_index",
+            description="Rebuild the database index from markdown files after manual file edits.",
+            annotations={
+                "readOnlyHint": False,
+                "destructiveHint": False,
+                "idempotentHint": True,
+            },
+        )
         def zk_rebuild_index() -> str:
-            """Rebuild the database index from files."""
+            """Rebuild the database index from markdown files after manual file edits.
+
+            Use this after editing note files directly in the filesystem to sync changes
+            back to the database. This is a safe operation that reconstructs the index
+            from the source of truth (markdown files).
+            """
             try:
                 # Get count before rebuild
                 note_count_before = len(self.zettel_service.get_all_notes())
-                
+
                 # Perform the rebuild
                 self.zettel_service.rebuild_index()
-                
+
                 # Get count after rebuild
                 note_count_after = len(self.zettel_service.get_all_notes())
-                
+
                 # Return a detailed success message
                 return (
                     f"Database index rebuilt successfully.\n"
