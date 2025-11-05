@@ -32,8 +32,8 @@ ENV ZETTELKASTEN_LOG_LEVEL=DEBUG
 # Create necessary directories
 RUN mkdir -p /data/notes /data/db
 
-ENV FASTMCP_TRANSPORT=stdio
-ENV FASTMCP_HOST 0.0.0.0
+# FastMCP HTTP transport configuration (Smithery will set these)
+ENV FASTMCP_HOST=0.0.0.0
 ENV FASTMCP_PORT=8000
 EXPOSE 8000
 

@@ -3,35 +3,39 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import Optional
 from sqlalchemy import exc as sqlalchemy_exc
+from sqlalchemy.engine.url import make_url
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 from smithery.decorators import smithery
 from zettelkasten_mcp.config import config
+from zettelkasten_mcp.models.db_models import init_db
 from zettelkasten_mcp.models.schema import LinkType, Note, NoteType, Tag
 from zettelkasten_mcp.services.search_service import SearchService
 from zettelkasten_mcp.services.zettel_service import ZettelService
+from zettelkasten_mcp.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
 
 class ZettelkastenConfigSchema(BaseModel):
     """Configuration schema for Zettelkasten MCP server deployed on Smithery."""
-    
+
     notes_dir: str = Field(
         default="data/notes",
-        description="Directory where markdown note files are stored"
+        description="Directory where markdown note files are stored",
     )
     database: str = Field(
         default="data/db/zettelkasten.db",
         description="SQLite file path or SQLAlchemy URL for the index database. "
-                    "Supports PostgreSQL, MySQL, and SQL Server via SQLAlchemy URLs, "
-                    "e.g. postgresql+psycopg://user:password@host:port/dbname"
+        "Supports PostgreSQL, MySQL, and SQL Server via SQLAlchemy URLs, "
+        "e.g. postgresql+psycopg://user:password@host:port/dbname",
     )
     log_level: str = Field(
         default="INFO",
-        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
     )
 
 
@@ -962,16 +966,47 @@ Help me create a structure note or synthesis that:
 
 # Smithery server factory function
 @smithery.server(config_schema=ZettelkastenConfigSchema)
-def create_server() -> FastMCP:
+def create_server(session_config: Optional[ZettelkastenConfigSchema] = None) -> FastMCP:
     """Create and return a Zettelkasten MCP server instance.
     
     This factory function is used by Smithery for deployment.
-    Session-specific configuration can be accessed through the Context parameter
-    in tool functions using ctx.session_config.
+    When deployed on Smithery, session_config contains user-specific settings.
+    
+    Args:
+        session_config: Optional session-specific configuration from Smithery
     
     Returns:
         FastMCP: Configured Zettelkasten MCP server instance
     """
+    # Apply session-specific configuration if provided
+    if session_config:
+        logger.info("Applying Smithery session configuration")
+        config.notes_dir = Path(session_config.notes_dir)
+        config.database = session_config.database
+
+        # Set up logging based on session config
+        setup_logging(session_config.log_level)
+    else:
+        # Use default logging when no session config provided
+        setup_logging("INFO")
+
+    # Ensure directories exist
+    notes_dir = config.get_absolute_path(config.notes_dir)
+    notes_dir.mkdir(parents=True, exist_ok=True)
+
+    # Initialize database schema
+    try:
+        db_url = config.get_db_url()
+        if config.uses_sqlite():
+            logger.info(f"Using SQLite database: {db_url}")
+        else:
+            safe_url = make_url(db_url).render_as_string(hide_password=True)
+            logger.info(f"Using database URL: {safe_url}")
+        init_db()
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise
+    
     # Create the server instance
     server_instance = ZettelkastenMcpServer()
     
