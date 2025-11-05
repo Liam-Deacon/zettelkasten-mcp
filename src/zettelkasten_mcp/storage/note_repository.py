@@ -22,7 +22,8 @@ class NoteRepository(Repository[Note]):
     """Repository for note storage and retrieval.
     This implements a dual storage approach:
     1. Notes are stored as Markdown files on disk for human readability and editing
-    2. MySQL database is used for indexing and efficient querying
+    2. A relational database backend (SQLite by default) is used for
+       indexing and efficient querying
     The file system is the source of truth - database is rebuilt from files if needed.
     """
     

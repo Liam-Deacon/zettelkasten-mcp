@@ -105,11 +105,12 @@ This system uses a dual storage approach:
    - Backed up using standard file backup procedures
    - Shared or transferred like any other text files
 
-2. **SQLite Database**: Functions as an indexing layer that:
+2. **Database Index**: Functions as an indexing layer that:
    - Facilitates efficient querying and search operations
    - Enables Claude to quickly traverse the knowledge graph
    - Maintains relationship information for faster link traversal
    - Is automatically rebuilt from Markdown files when needed
+   - Uses SQLite by default; provide a SQLAlchemy URL via `ZETTELKASTEN_DATABASE` for PostgreSQL or other backends
 
 If you edit Markdown files directly outside the system, you'll need to run the `zk_rebuild_index` tool to update the database. The database itself can be deleted at any time - it will be regenerated from your Markdown files.
 
@@ -126,7 +127,7 @@ npx -y @smithery/cli install zettelkasten-mcp --client claude
 ### Via uvx
 
 ```bash
-uvx --from=git+https://github.com/entanglr/zettelkasten-mcp zettelkasten-mcp --notes-dir ./data/notes --database-path ./data/db/zettelkasten.db
+uvx --from=git+https://github.com/entanglr/zettelkasten-mcp zettelkasten-mcp --notes-dir ./data/notes --database ./data/db/zettelkasten.db
 ```
 
 ### Local Development
@@ -157,6 +158,50 @@ cp .env.example .env
 
 Then edit the file to configure your connection parameters.
 
+To use PostgreSQL instead of the bundled SQLite database, install the optional driver and point `ZETTELKASTEN_DATABASE` at a SQLAlchemy URL:
+
+```bash
+pip install "zettelkasten-mcp[postgresql]"
+export ZETTELKASTEN_DATABASE="postgresql+psycopg://user:password@localhost:5432/zettelkasten"
+```
+
+Using pipx:
+
+```bash
+pipx install "zettelkasten-mcp[postgresql]"
+export ZETTELKASTEN_DATABASE="postgresql+psycopg://user:password@localhost:5432/zettelkasten"
+```
+
+`ZETTELKASTEN_DATABASE` accepts either a filesystem path (default `./data/db/zettelkasten.db`) or any SQLAlchemy-compatible URL. Legacy `ZETTELKASTEN_DATABASE_PATH` / `ZETTELKASTEN_DATABASE_URL` variables are still honored for backward compatibility.
+
+For MySQL or MariaDB support, install the `mysql` extra and supply a URL using the `pymysql` driver:
+
+```bash
+pip install "zettelkasten-mcp[mysql]"
+export ZETTELKASTEN_DATABASE="mysql+pymysql://user:password@localhost:3306/zettelkasten"
+```
+
+Using pipx:
+
+```bash
+pipx install "zettelkasten-mcp[mysql]"
+export ZETTELKASTEN_DATABASE="mysql+pymysql://user:password@localhost:3306/zettelkasten"
+```
+
+For Microsoft SQL Server, install the `sqlserver` extra and point to an ODBC connection string (requires the appropriate system ODBC driver, e.g. *ODBC Driver 18 for SQL Server*):
+
+```bash
+pip install "zettelkasten-mcp[sqlserver]"
+export ZETTELKASTEN_DATABASE="mssql+pyodbc://user:password@server/database?driver=ODBC+Driver+18+for+SQL+Server"
+```
+
+Using pipx:
+
+```bash
+pipx install "zettelkasten-mcp[sqlserver]"
+export ZETTELKASTEN_DATABASE="mssql+pyodbc://user:password@server/database?driver=ODBC+Driver+18+for+SQL+Server"
+```
+
 ## Usage
 
 ### Starting the Server
@@ -168,7 +213,14 @@ python -m zettelkasten_mcp
 Or with explicit configuration:
 
 ```bash
-python -m zettelkasten_mcp --notes-dir ./data/notes --database-path ./data/db/zettelkasten.db
+python -m zettelkasten_mcp --notes-dir ./data/notes --database ./data/db/zettelkasten.db
+```
+
+Or with PostgreSQL:
+
+```bash
+python -m zettelkasten_mcp --notes-dir ./data/notes \
+  --database postgresql+psycopg://user:password@localhost:5432/zettelkasten
 ```
 
 ### Connecting to Claude Desktop
@@ -194,13 +246,15 @@ Add the following configuration to your Claude Desktop:
       ],
       "env": {
         "ZETTELKASTEN_NOTES_DIR": "/absolute/path/to/zettelkasten-mcp/data/notes",
-        "ZETTELKASTEN_DATABASE_PATH": "/absolute/path/to/zettelkasten-mcp/data/db/zettelkasten.db",
+        "ZETTELKASTEN_DATABASE": "postgresql+psycopg://user:password@localhost:5432/zettelkasten",
         "ZETTELKASTEN_LOG_LEVEL": "INFO"
       }
     }
   }
 }
 ```
+
+Set `ZETTELKASTEN_DATABASE` to a filesystem path for SQLite or any SQLAlchemy URL (for example PostgreSQL) to choose the backend.
 
 ## Available MCP Tools
 
