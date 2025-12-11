@@ -24,6 +24,7 @@ dependencies = [
     "markdown>=3.4.0",
     "python-dotenv>=1.0.0",
     "smithery>=0.4.2",
+    "pymongo>=4.6.0",
 ]
 
 [project.optional-dependencies]

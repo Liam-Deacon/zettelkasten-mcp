@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from sqlalchemy.engine.url import make_url
@@ -34,8 +35,26 @@ class ZettelkastenConfig(BaseModel):
             os.getenv("ZETTELKASTEN_NOTES_DIR") or "data/notes"
         )
     )
+    # Storage backend selection
+    storage_backend: str = Field(
+        default=os.getenv("ZETTELKASTEN_STORAGE_BACKEND", "filesystem"),
+        description="Storage backend to use: filesystem (default) or mongo",
+    )
     # Database configuration (path or SQLAlchemy URL)
     database: str = Field(default_factory=_default_database_setting)
+    # MongoDB configuration (optional)
+    mongodb_uri: str | None = Field(
+        default=os.getenv("MONGODB_URI"),
+        description="MongoDB connection string when using the Mongo backend",
+    )
+    mongodb_database: str = Field(
+        default=os.getenv("MONGODB_DB") or "aam_knowledge_base",
+        description="MongoDB database name when using the Mongo backend",
+    )
+    mongodb_collection: str = Field(
+        default=os.getenv("MONGODB_COLLECTION") or "notes",
+        description="MongoDB collection name when using the Mongo backend",
+    )
     # Server configuration
     server_name: str = Field(
         default=os.getenv("ZETTELKASTEN_SERVER_NAME", "zettelkasten-mcp")
@@ -110,6 +129,10 @@ class ZettelkastenConfig(BaseModel):
             return make_url(self.get_db_url()).get_backend_name() == "sqlite"
         except Exception:
             return self.get_db_url().startswith("sqlite:")
+
+    def use_mongodb(self) -> bool:
+        """Return True when MongoDB backend is configured."""
+        return str(self.storage_backend).lower() == "mongo" and bool(self.mongodb_uri)
 
 
 # Create a global config instance
