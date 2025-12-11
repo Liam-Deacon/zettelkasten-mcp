@@ -204,6 +204,36 @@ pipx install "zettelkasten-mcp[sqlserver]"
 export ZETTELKASTEN_DATABASE="mssql+pyodbc://user:password@server/database?driver=ODBC+Driver+18+for+SQL+Server"
 ```
 
+### MongoDB backend (shared knowledge base)
+
+To use a Mongo-backed store (for example a shared Atlas cluster), set the storage backend and provide a URI via environment variables only:
+
+```bash
+export ZETTELKASTEN_STORAGE_BACKEND=mongo
+export MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>/?retryWrites=true&w=majority"
+# Optional overrides (defaults shown)
+export MONGODB_DB="aam_knowledge_base"
+export MONGODB_COLLECTION="notes"
+```
+
+- Keep the URI in a secrets manager such as 1Password; do not commit it to `.env` templates or source control.
+- Defaults: database `aam_knowledge_base`, collection `notes`.
+- When `ZETTELKASTEN_STORAGE_BACKEND=mongo` is set, the SQL/SQLite index is not initialized; notes, tags, and links are stored directly in MongoDB.
+- Smoke test (read-only) to validate connectivity:
+
+```bash
+python - <<'PY'
+import os
+from pymongo import MongoClient
+uri = os.environ["MONGODB_URI"]
+db_name = os.getenv("MONGODB_DB", "aam_knowledge_base")
+collection = os.getenv("MONGODB_COLLECTION", "notes")
+client = MongoClient(uri, serverSelectionTimeoutMS=3000)
+db = client[db_name]
+print("Ping OK, collection:", collection, "count:", db[collection].estimated_document_count())
+PY
+```
+
 ## Usage
 
 ### Starting the Server

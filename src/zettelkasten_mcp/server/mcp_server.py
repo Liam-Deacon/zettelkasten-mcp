@@ -1009,22 +1009,29 @@ def create_server(session_config: ZettelkastenConfigSchema | None = None) -> Fas
         # Use default logging when no session config provided
         setup_logging("INFO")
 
-    # Ensure directories exist
+    # Ensure directories exist for filesystem backend
     notes_dir = config.get_absolute_path(config.notes_dir)
     notes_dir.mkdir(parents=True, exist_ok=True)
 
-    # Initialize database schema
-    try:
-        db_url = config.get_db_url()
-        if config.uses_sqlite():
-            logger.info(f"Using SQLite database: {db_url}")
-        else:
-            safe_url = make_url(db_url).render_as_string(hide_password=True)
-            logger.info(f"Using database URL: {safe_url}")
-        init_db()
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
+    # Initialize storage backend
+    if config.use_mongodb():
+        logger.info(
+            "Using MongoDB backend: database=%s collection=%s (URI supplied via env)",
+            config.mongodb_database,
+            config.mongodb_collection,
+        )
+    else:
+        try:
+            db_url = config.get_db_url()
+            if config.uses_sqlite():
+                logger.info(f"Using SQLite database: {db_url}")
+            else:
+                safe_url = make_url(db_url).render_as_string(hide_password=True)
+                logger.info(f"Using database URL: {safe_url}")
+            init_db()
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise
 
     # Create the server instance
     server_instance = ZettelkastenMcpServer()
