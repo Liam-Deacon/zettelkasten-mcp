@@ -16,7 +16,9 @@ RUN set -eux; \
         ca-certificates \
         apt-transport-https; \
     if [ "${TARGETARCH}" = "amd64" ]; then \
-        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg; \
+        curl --fail --show-error --location --output /tmp/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc; \
+        gpg --dearmor /tmp/microsoft.asc > /usr/share/keyrings/microsoft-prod.gpg; \
+        rm -f /tmp/microsoft.asc; \
         echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list; \
         apt-get update; \
         ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
