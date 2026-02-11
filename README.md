@@ -132,6 +132,26 @@ npx -y @smithery/cli install zettelkasten-mcp --client claude
 uvx --from=git+https://github.com/entanglr/zettelkasten-mcp zettelkasten-mcp --notes-dir ./data/notes --database ./data/db/zettelkasten.db
 ```
 
+### Docker image architecture support
+
+The `latest` image tag is published as a multi-arch image manifest with:
+
+- `linux/amd64`
+- `linux/arm64`
+
+Backend support in the container image differs by architecture:
+
+| Backend       | `linux/amd64` | `linux/arm64` |
+| ------------- | ------------- | ------------- |
+| SQLite        | Supported     | Supported     |
+| PostgreSQL    | Supported     | Supported     |
+| MySQL/MariaDB | Supported     | Supported     |
+| SQL Server    | Supported     | Not supported |
+
+`linux/arm64` images intentionally skip SQL Server ODBC driver installation
+(`msodbcsql18`) because upstream driver packaging is currently amd64-focused in
+this Docker build strategy.
+
 ### Local Development
 
 ```bash
@@ -203,6 +223,10 @@ Using pipx:
 pipx install "zettelkasten-mcp[sqlserver]"
 export ZETTELKASTEN_DATABASE="mssql+pyodbc://user:password@server/database?driver=ODBC+Driver+18+for+SQL+Server"
 ```
+
+Note for container users: SQL Server support is available in the published
+Docker image on `linux/amd64` only. On `linux/arm64`, the container does not
+include SQL Server ODBC drivers, so use SQLite/PostgreSQL/MySQL instead.
 
 ## Usage
 

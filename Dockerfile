@@ -3,7 +3,11 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for optional database drivers (incl. SQL Server ODBC)
+# BuildKit automatically sets this for each platform build.
+ARG TARGETARCH
+
+# Install system dependencies for optional database drivers.
+# SQL Server ODBC packages are installed on amd64 only.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -11,18 +15,28 @@ RUN set -eux; \
         gnupg2 \
         ca-certificates \
         apt-transport-https; \
-    curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg; \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list; \
-    apt-get update; \
-    ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
-        msodbcsql18 \
-        unixodbc; \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg; \
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list; \
+        apt-get update; \
+        ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
+            msodbcsql18 \
+            unixodbc; \
+    else \
+        echo "Skipping SQL Server ODBC installation for TARGETARCH=${TARGETARCH}"; \
+    fi; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 COPY . .
-RUN pip install --no-cache-dir .[postgresql,sqlserver,mysql]
+RUN set -eux; \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+        pip install --no-cache-dir .[postgresql,sqlserver,mysql]; \
+    else \
+        pip install --no-cache-dir .[postgresql,mysql]; \
+        echo "Installed without sqlserver extra for TARGETARCH=${TARGETARCH}"; \
+    fi
 
 # Set environment variables
 ENV ZETTELKASTEN_NOTES_DIR=/data/notes
