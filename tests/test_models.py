@@ -1,22 +1,33 @@
 # tests/test_models.py
 """Tests for the data models used in the Zettelkasten MCP server."""
 import datetime
-import time
 import re
-import pytest
+import time
 from unittest.mock import patch
+
+import pytest
 from pydantic import ValidationError
-from zettelkasten_mcp.models.schema import Link, LinkType, Note, NoteType, Tag, generate_id
+
+from zettelkasten_mcp.models.schema import (
+    Link,
+    LinkType,
+    Note,
+    NoteType,
+    Tag,
+    generate_id,
+)
+
 
 class TestNoteModel:
     """Tests for the Note model."""
+
     def test_note_creation(self):
         """Test creating a note with valid values."""
         note = Note(
             title="Test Note",
             content="This is a test note.",
             note_type=NoteType.PERMANENT,
-            tags=[Tag(name="test"), Tag(name="example")]
+            tags=[Tag(name="test"), Tag(name="example")],
         )
         assert note.id is not None
         assert note.title == "Test Note"
@@ -44,7 +55,7 @@ class TestNoteModel:
         note = Note(
             title="Tag Test",
             content="Testing tag operations.",
-            tags=[Tag(name="initial")]
+            tags=[Tag(name="initial")],
         )
         assert len(note.tags) == 1
         # Add tag as string
@@ -69,9 +80,7 @@ class TestNoteModel:
     def test_note_link_operations(self):
         """Test adding and removing links."""
         note = Note(
-            title="Link Test",
-            content="Testing link operations.",
-            id="source123"
+            title="Link Test", content="Testing link operations.", id="source123"
         )
         # Add link
         note.add_link("target456", LinkType.REFERENCE, "Test link")
@@ -101,7 +110,7 @@ class TestNoteModel:
             title="Markdown Test",
             content="Testing markdown conversion.",
             note_type=NoteType.PERMANENT,
-            tags=[Tag(name="test"), Tag(name="markdown")]
+            tags=[Tag(name="test"), Tag(name="markdown")],
         )
         note.add_link("target123", LinkType.REFERENCE, "Reference link")
         markdown = note.to_markdown()
@@ -116,13 +125,14 @@ class TestNoteModel:
 
 class TestLinkModel:
     """Tests for the Link model."""
+
     def test_link_creation(self):
         """Test creating a link with valid values."""
         link = Link(
             source_id="source123",
             target_id="target456",
             link_type=LinkType.REFERENCE,
-            description="Test description"
+            description="Test description",
         )
         assert link.source_id == "source123"
         assert link.target_id == "target456"
@@ -144,10 +154,7 @@ class TestLinkModel:
 
     def test_link_immutability(self):
         """Test that Link objects are immutable."""
-        link = Link(
-            source_id="source123", 
-            target_id="target456"
-        )
+        link = Link(source_id="source123", target_id="target456")
         # Attempt to modify link should fail
         with pytest.raises(Exception):
             link.source_id = "newsource"
@@ -155,6 +162,7 @@ class TestLinkModel:
 
 class TestTagModel:
     """Tests for the Tag model."""
+
     def test_tag_creation(self):
         """Test creating a tag with valid values."""
         tag = Tag(name="test")
@@ -176,20 +184,22 @@ class TestHelperFunctions:
         """Test that generated IDs follow the correct ISO 8601 format with nanosecond precision."""
         # Generate an ID
         id_str = generate_id()
-        
+
         # Verify it matches the expected format: YYYYMMDDTHHMMSSsssssssss
         # Where sssssssss is a 9-digit nanosecond component
-        pattern = r'^\d{8}T\d{6}\d{9}$'
-        assert re.match(pattern, id_str), f"ID {id_str} does not match expected ISO 8601 basic format"
-        
+        pattern = r"^\d{8}T\d{6}\d{9}$"
+        assert re.match(
+            pattern, id_str
+        ), f"ID {id_str} does not match expected ISO 8601 basic format"
+
         # Verify the parts make sense
         date_part = id_str[:8]
         separator = id_str[8]
         time_part = id_str[9:15]
         ns_part = id_str[15:]
-        
+
         assert len(date_part) == 8, "Date part should be 8 digits (YYYYMMDD)"
-        assert separator == 'T', "Date/time separator should be 'T' per ISO 8601"
+        assert separator == "T", "Date/time separator should be 'T' per ISO 8601"
         assert len(time_part) == 6, "Time part should be 6 digits (HHMMSS)"
         assert len(ns_part) == 9, "Nanosecond part should be 9 digits"
 
@@ -197,7 +207,7 @@ class TestHelperFunctions:
         """Test that ISO 8601 IDs with nanosecond precision are unique even in rapid succession."""
         # Generate multiple IDs as quickly as possible
         ids = [generate_id() for _ in range(1000)]
-        
+
         # Verify they are all unique
         unique_ids = set(ids)
         assert len(unique_ids) == 1000, "Generated IDs should all be unique"
@@ -206,10 +216,10 @@ class TestHelperFunctions:
         """Test that ISO 8601 IDs sort chronologically without artificial delays."""
         # Generate multiple IDs in the fastest possible succession
         ids = [generate_id() for _ in range(5)]
-        
+
         # Verify they're all unique
         assert len(set(ids)) == 5
-        
+
         # Verify chronological order matches lexicographical sorting
         sorted_ids = sorted(ids)
         assert sorted_ids == ids, "ISO 8601 IDs should sort chronologically"

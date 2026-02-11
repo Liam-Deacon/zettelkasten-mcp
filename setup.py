@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+
 setup(
     name="zettelkasten_mcp",
     version="1.2.1",

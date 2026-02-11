@@ -1,6 +1,9 @@
 """Tests for the NoteRepository class."""
+
 import pytest
+
 from zettelkasten_mcp.models.schema import LinkType, Note, NoteType, Tag
+
 
 def test_create_note(note_repository):
     """Test creating a new note."""
@@ -9,7 +12,7 @@ def test_create_note(note_repository):
         title="Test Note",
         content="This is a test note.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="test"), Tag(name="example")]
+        tags=[Tag(name="test"), Tag(name="example")],
     )
     # Save to repository
     saved_note = note_repository.create(note)
@@ -21,6 +24,7 @@ def test_create_note(note_repository):
     assert len(saved_note.tags) == 2
     assert {tag.name for tag in saved_note.tags} == {"test", "example"}
 
+
 def test_get_note(note_repository):
     """Test retrieving a note."""
     # Create a test note
@@ -28,7 +32,7 @@ def test_get_note(note_repository):
         title="Get Test Note",
         content="This is a test note for retrieval.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="test"), Tag(name="get")]
+        tags=[Tag(name="test"), Tag(name="get")],
     )
     # Save to repository
     saved_note = note_repository.create(note)
@@ -45,6 +49,7 @@ def test_get_note(note_repository):
     assert len(retrieved_note.tags) == 2
     assert {tag.name for tag in retrieved_note.tags} == {"test", "get"}
 
+
 def test_update_note(note_repository):
     """Test updating a note."""
     # Create a test note
@@ -52,7 +57,7 @@ def test_update_note(note_repository):
         title="Update Test Note",
         content="This is a test note for updating.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="test"), Tag(name="update")]
+        tags=[Tag(name="test"), Tag(name="update")],
     )
     # Save to repository
     saved_note = note_repository.create(note)
@@ -73,6 +78,7 @@ def test_update_note(note_repository):
     assert retrieved_note.content.strip() == expected_content.strip()
     assert {tag.name for tag in retrieved_note.tags} == {"test", "updated"}
 
+
 def test_delete_note(note_repository):
     """Test deleting a note."""
     # Create a test note
@@ -80,7 +86,7 @@ def test_delete_note(note_repository):
         title="Delete Test Note",
         content="This is a test note for deletion.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="test"), Tag(name="delete")]
+        tags=[Tag(name="test"), Tag(name="delete")],
     )
     # Save to repository
     saved_note = note_repository.create(note)
@@ -93,6 +99,7 @@ def test_delete_note(note_repository):
     deleted_note = note_repository.get(saved_note.id)
     assert deleted_note is None
 
+
 def test_search_notes(note_repository):
     """Test searching for notes."""
     # Create test notes
@@ -100,46 +107,47 @@ def test_search_notes(note_repository):
         title="Python Programming",
         content="Python is a versatile programming language.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="python"), Tag(name="programming")]
+        tags=[Tag(name="python"), Tag(name="programming")],
     )
     note2 = Note(
         title="JavaScript Basics",
         content="JavaScript is used for web development.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="javascript"), Tag(name="programming")]
+        tags=[Tag(name="javascript"), Tag(name="programming")],
     )
     note3 = Note(
         title="Data Science Overview",
         content="Data science uses Python for data analysis.",
         note_type=NoteType.STRUCTURE,
-        tags=[Tag(name="data science"), Tag(name="python")]
+        tags=[Tag(name="data science"), Tag(name="python")],
     )
     # Save notes
     saved_note1 = note_repository.create(note1)
     saved_note2 = note_repository.create(note2)
     saved_note3 = note_repository.create(note3)
-    
+
     # Search by content with title included (since content has the title prepended)
     python_notes = note_repository.search(content="Python")
     # We should find both the Python notes even with title prepended
     assert len(python_notes) >= 1  # At least one match
     python_ids = {note.id for note in python_notes}
     assert saved_note1.id in python_ids or saved_note3.id in python_ids
-    
+
     # Search by title
     javascript_notes = note_repository.search(title="JavaScript")
     assert len(javascript_notes) == 1
     assert javascript_notes[0].id == saved_note2.id
-    
+
     # Search by note_type
     structure_notes = note_repository.search(note_type=NoteType.STRUCTURE)
     assert len(structure_notes) == 1
     assert structure_notes[0].id == saved_note3.id
-    
+
     # Search by tag
     programming_notes = note_repository.find_by_tag("programming")
     assert len(programming_notes) == 2
     assert {note.id for note in programming_notes} == {saved_note1.id, saved_note2.id}
+
 
 def test_note_linking(note_repository):
     """Test creating links between notes."""
@@ -148,13 +156,13 @@ def test_note_linking(note_repository):
         title="Source Note",
         content="This is the source note.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="test"), Tag(name="source")]
+        tags=[Tag(name="test"), Tag(name="source")],
     )
     note2 = Note(
         title="Target Note",
         content="This is the target note.",
         note_type=NoteType.PERMANENT,
-        tags=[Tag(name="test"), Tag(name="target")]
+        tags=[Tag(name="test"), Tag(name="target")],
     )
     # Save notes
     source_note = note_repository.create(note1)
@@ -163,7 +171,7 @@ def test_note_linking(note_repository):
     source_note.add_link(
         target_id=target_note.id,
         link_type=LinkType.REFERENCE,
-        description="A test link"
+        description="A test link",
     )
     # Update the source note
     updated_source = note_repository.update(source_note)
