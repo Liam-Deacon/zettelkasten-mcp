@@ -14,12 +14,12 @@ RUN set -eux; \
         curl \
         gnupg2 \
         ca-certificates \
-        apt-transport-https; \
+        apt-transport-https \
+        dpkg; \
     if [ "${TARGETARCH}" = "amd64" ]; then \
-        curl --fail --show-error --location --output /tmp/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc; \
-        gpg --dearmor /tmp/microsoft.asc > /usr/share/keyrings/microsoft-prod.gpg; \
-        rm -f /tmp/microsoft.asc; \
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/microsoft-prod.list; \
+        curl --fail --show-error --location --output /tmp/packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb; \
+        dpkg -i /tmp/packages-microsoft-prod.deb; \
+        rm -f /tmp/packages-microsoft-prod.deb; \
         apt-get update; \
         ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
             msodbcsql18 \
