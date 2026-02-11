@@ -3,12 +3,14 @@
 import os
 import tempfile
 from pathlib import Path
+
 import pytest
+
 from zettelkasten_mcp.config import config
 from zettelkasten_mcp.models.schema import LinkType, NoteType
 from zettelkasten_mcp.server.mcp_server import ZettelkastenMcpServer
-from zettelkasten_mcp.services.zettel_service import ZettelService
 from zettelkasten_mcp.services.search_service import SearchService
+from zettelkasten_mcp.services.zettel_service import ZettelService
 
 
 class TestIntegration:

@@ -1,4 +1,5 @@
 """Tests for the configuration module."""
+
 from pathlib import Path
 
 from sqlalchemy.engine.url import make_url

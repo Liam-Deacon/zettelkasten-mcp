@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from sqlalchemy.engine.url import make_url
