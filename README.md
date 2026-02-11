@@ -132,6 +132,32 @@ npx -y @smithery/cli install zettelkasten-mcp --client claude
 uvx --from=git+https://github.com/entanglr/zettelkasten-mcp zettelkasten-mcp --notes-dir ./data/notes --database ./data/db/zettelkasten.db
 ```
 
+### Via pipx (native macOS/Linux/Windows)
+
+Install from GitHub:
+
+```bash
+pipx install "git+https://github.com/entanglr/zettelkasten-mcp.git"
+```
+
+If/when published on PyPI, install from PyPI instead:
+
+```bash
+pipx install zettelkasten-mcp
+```
+
+Run the server:
+
+```bash
+zettelkasten-mcp --notes-dir ./data/notes --database ./data/db/zettelkasten.db
+```
+
+### Native Apple Silicon (non-Docker)
+
+On Apple Silicon Macs, prefer `pipx`/`uvx` for native `darwin/arm64`
+execution. Docker images are Linux-only (`linux/amd64`, `linux/arm64`) and do
+not provide a native `darwin` container target.
+
 ### Docker image architecture support
 
 The `latest` image tag is published as a multi-arch image manifest with:
